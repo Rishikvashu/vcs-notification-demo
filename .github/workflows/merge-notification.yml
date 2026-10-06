@@ -1,0 +1,42 @@
+name: Branch Merge Notification
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  notify:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": ":white_check_mark: *PR merged into main*\n*Title:* ${{ github.event.pull_request.title }}\n*Author:* ${{ github.event.pull_request.user.login }}\n*Merged by:* ${{ github.event.pull_request.merged_by.login }}\n*Link:* ${{ github.event.pull_request.html_url }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Send Email Notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "PR Merged into main: ${{ github.event.pull_request.title }}"
+          to: ${{ secrets.EMAIL_TO }}
+          from: GitHub Notifications <${{ secrets.EMAIL_USERNAME }}>
+          body: |
+            A pull request was merged into main.
+
+            Title: ${{ github.event.pull_request.title }}
+            Author: ${{ github.event.pull_request.user.login }}
+            Merged by: ${{ github.event.pull_request.merged_by.login }}
+            Link: ${{ github.event.pull_request.html_url }}
